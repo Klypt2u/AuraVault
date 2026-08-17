@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AuraVault — KakoBuy Command Console</title>
+  <meta name="description" content="AuraVault: convert Taobao / Weidian / 1688 links to KakoBuy, track orders, and review QC photos. Monochrome command console." />
+  <meta name="theme-color" content="#0a0a0a" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%230a0a0a'/%3E%3Cpath d='M32 8 54 20v24L32 56 10 44V20z' fill='none' stroke='%23fff' stroke-width='3'/%3E%3Ctext x='32' y='40' font-family='monospace' font-size='20' font-weight='bold' fill='%23fff' text-anchor='middle'%3EAV%3C/text%3E%3C/svg%3E" />
+  <link rel="stylesheet" href="css/styles.css" />
+</head>
+<body>
+  <div class="app">
+
+    <!-- ============ TOP BAR ============ -->
+    <header class="topbar">
+      <a class="brand" href="#/dashboard" aria-label="AuraVault home">
+        <svg class="brand-glyph" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M32 6 56 19v26L32 58 8 45V19z" fill="none" stroke="currentColor" stroke-width="4"/>
+          <path d="M32 16v12M32 28l-9 14M32 28l9 14M32 22l-6 20M32 22l6 20" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+        <span class="brand-name">AURA<span class="brand-accent">VAULT</span></span>
+        <span class="brand-cursor" aria-hidden="true"></span>
+      </a>
+      <nav class="topnav" id="topNav" aria-label="Primary"></nav>
+      <div class="topbar-status" id="topbarStatus">
+        <span class="pulse-dot"></span>
+        <span class="status-text">CONSOLE READY</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <!-- ============ SIDEBAR ============ -->
+      <aside class="sidebar">
+        <nav class="sidenav" id="sideNav" aria-label="Sections"></nav>
+        <div class="sidebar-foot">
+          <div class="foot-line"><span class="foot-key">SYS</span><span id="sysVersion">v1.0.0</span></div>
+          <div class="foot-line"><span class="foot-key">DB</span><span id="sysOrders">0 ORDERS</span></div>
+          <div class="foot-line"><span class="foot-key">LNK</span><span id="sysPlatform">—</span></div>
+        </div>
+      </aside>
+
+      <!-- ============ MAIN ============ -->
+      <main class="content" id="mainContent">
+
+        <!-- ===== DASHBOARD ===== -->
+        <section class="view" id="view-dashboard" data-view="dashboard">
+          <div class="view-head">
+            <div>
+              <p class="eyebrow">// CONTROL CENTER</p>
+              <h1>Dashboard</h1>
+            </div>
+            <div class="view-head-stats" id="dashStats"></div>
+          </div>
+
+          <div class="hero">
+            <p class="hero-kicker">TAP INTO THE SUPPLY CHAIN</p>
+            <h2 class="hero-title">SHOP CHINA.<br /><span class="hero-accent">SHIP EVERYWHERE.</span></h2>
+            <p class="hero-sub">Paste a Taobao, Weidian, or 1688 link and route it to KakoBuy in one keystroke. Track every order and inspect QC photos from the warehouse — all from a single monochrome console.</p>
+            <div class="hero-actions">
+              <a class="btn btn-primary" href="#/converter">OPEN LINK CONVERTER</a>
+              <a class="btn btn-ghost" href="#/orders">VIEW ORDERS</a>
+            </div>
+          </div>
+
+          <div class="quick-convert card">
+            <div class="card-head">
+              <h3 class="card-title">Quick Convert</h3>
+              <span class="mono-tag">TAOBAO / WEIDIAN / 1688</span>
+            </div>
+            <div class="convert-row">
+              <input type="url" id="quickLinkInput" class="input input-lg" placeholder="Paste item link here…" spellcheck="false" autocomplete="off" />
+              <button class="btn btn-primary" id="quickConvertBtn" type="button">CONVERT</button>
+            </div>
+          </div>
+
+          <div class="dash-grid">
+            <div class="card">
+              <div class="card-head"><h3 class="card-title">Recent Orders</h3><a class="link-mono" href="#/orders">ALL →</a></div>
+              <div class="order-mini-list" id="dashRecent"></div>
+            </div>
+            <div class="card">
+              <div class="card-head"><h3 class="card-title">Pipeline</h3></div>
+              <div class="pipeline" id="dashPipeline"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== LINK CONVERTER ===== -->
+        <section class="view" id="view-converter" data-view="converter" hidden>
+          <div class="view-head">
+            <div>
+              <p class="eyebrow">// LINK CONVERTER &amp; ORDER ROUTER</p>
+              <h1>Link Converter</h1>
+            </div>
+          </div>
+
+          <div class="card converter-card">
+            <div class="card-head">
+              <h3 class="card-title">Route a Product Link</h3>
+              <span class="mono-tag" id="convPlatformTag">AWAITING INPUT</span>
+            </div>
+            <label class="field-label" for="convInput">SOURCE LINK</label>
+            <textarea id="convInput" class="input input-lg input-area" rows="3" placeholder="https://item.taobao.com/item.htm?id=…&#10;https://weidian.com/item.html?itemID=…&#10;https://detail.1688.com/offer/….html" spellcheck="false"></textarea>
+            <div class="convert-actions">
+              <button class="btn btn-primary" id="convBtn" type="button">ANALYZE &amp; ROUTE</button>
+              <button class="btn btn-ghost" id="convClearBtn" type="button">CLEAR</button>
+            </div>
+            <div class="conv-hint">Supported: <span class="mono">item.taobao.com/item.htm?id=</span> · <span class="mono">weidian.com/item.html?itemID=</span> · <span class="mono">detail.1688.com/offer/&lt;id&gt;.html</span></div>
+          </div>
+
+          <div class="card result-card" id="convResult" hidden>
+            <div class="card-head">
+              <h3 class="card-title">Parsed Item</h3>
+              <span class="mono-tag" id="resultPlatformTag">—</span>
+            </div>
+            <div class="result-grid">
+              <div class="result-cell">
+                <span class="result-label">ITEM ID</span>
+                <div class="result-value-row">
+                  <code class="result-code" id="resultItemId">—</code>
+                  <button class="btn btn-ghost btn-sm" id="copyItemIdBtn" type="button">COPY</button>
+                </div>
+              </div>
+              <div class="result-cell result-cell-wide">
+                <span class="result-label">KAKOBUY OUTLINK</span>
+                <div class="result-value-row">
+                  <code class="result-code result-code-url" id="resultOutlink">—</code>
+                  <button class="btn btn-ghost btn-sm" id="copyOutlinkBtn" type="button">COPY</button>
+                </div>
+              </div>
+              <div class="result-cell result-cell-wide">
+                <span class="result-label">SOURCE URL</span>
+                <code class="result-code result-code-url result-muted" id="resultSource">—</code>
+              </div>
+            </div>
+            <div class="result-actions">
+              <a class="btn btn-primary" id="openKakoBtn" href="#" target="_blank" rel="noopener noreferrer">OPEN ON KAKOBUY ↗</a>
+              <button class="btn btn-ghost" id="saveOrderBtn" type="button">+ SAVE TO ORDER TRACKER</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== ORDER TRACKER ===== -->
+        <section class="view" id="view-orders" data-view="orders" hidden>
+          <div class="view-head">
+            <div>
+              <p class="eyebrow">// ORDER TRACKER</p>
+              <h1>Order Tracker</h1>
+            </div>
+            <button class="btn btn-primary" id="addOrderBtn" type="button">+ NEW ORDER</button>
+          </div>
+
+          <div class="toolbar card">
+            <input type="search" id="orderSearch" class="input" placeholder="Search title or item ID…" spellcheck="false" />
+            <div class="filter-chips" id="orderFilters"></div>
+          </div>
+
+          <div class="orders-grid" id="ordersGrid"></div>
+          <div class="empty-state" id="ordersEmpty" hidden>
+            <p class="empty-glyph">▢</p>
+            <p class="empty-title">NO ORDERS MATCH</p>
+            <p class="empty-sub">Add a new order or adjust your filters.</p>
+          </div>
+        </section>
+
+        <!-- ===== QC VIEWER ===== -->
+        <section class="view" id="view-qc" data-view="qc" hidden>
+          <div class="view-head">
+            <div>
+              <p class="eyebrow">// QUALITY CONTROL</p>
+              <h1>QC Photo Viewer</h1>
+            </div>
+          </div>
+
+          <div class="toolbar card">
+            <div class="filter-chips" id="qcFilters"></div>
+            <span class="mono-tag" id="qcCount">0 SHOTS</span>
+          </div>
+
+          <div class="orders-grid" id="qcGrid"></div>
+          <div class="empty-state" id="qcEmpty" hidden>
+            <p class="empty-glyph">◈</p>
+            <p class="empty-title">NO QC PHOTOS AVAILABLE</p>
+            <p class="empty-sub">Orders with QC photos will appear here.</p>
+          </div>
+        </section>
+
+        <!-- ===== SETTINGS ===== -->
+        <section class="view" id="view-settings" data-view="settings" hidden>
+          <div class="view-head">
+            <div>
+              <p class="eyebrow">// CONFIGURATION</p>
+              <h1>Settings</h1>
+            </div>
+          </div>
+
+          <div class="settings-grid">
+            <div class="card">
+              <div class="card-head"><h3 class="card-title">KakoBuy Routing</h3></div>
+              <label class="field-label" for="setAffcode">AFFILIATE CODE <span class="label-opt">(OPTIONAL)</span></label>
+              <input type="text" id="setAffcode" class="input" placeholder="e.g. 897xg" autocomplete="off" spellcheck="false" />
+              <p class="field-help">Appended to every generated KakoBuy outlink as <span class="mono">affcode=</span>.</p>
+
+              <label class="field-label" for="setToken">KAKOBUY SESSION TOKEN <span class="label-opt">(LOCAL ONLY)</span></label>
+              <input type="password" id="setToken" class="input" placeholder="Stored in localStorage, never transmitted" autocomplete="off" />
+              <p class="field-help">Kept in this browser only. AuraVault has no backend — nothing is sent anywhere.</p>
+            </div>
+
+            <div class="card">
+              <div class="card-head"><h3 class="card-title">Interface</h3></div>
+              <div class="toggle-row">
+                <div>
+                  <span class="toggle-label">Auto-copy outlink</span>
+                  <span class="toggle-sub">Copy the KakoBuy link automatically after conversion.</span>
+                </div>
+                <label class="switch"><input type="checkbox" id="setAutoCopy" /><span class="slider"></span></label>
+              </div>
+              <div class="toggle-row">
+                <div>
+                  <span class="toggle-label">Background grid</span>
+                  <span class="toggle-sub">Show the blueprint grid behind the console.</span>
+                </div>
+                <label class="switch"><input type="checkbox" id="setGrid" /><span class="slider"></span></label>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head"><h3 class="card-title">Data</h3></div>
+              <p class="field-help">All orders and preferences live in your browser's localStorage. Back them up or move them between devices.</p>
+              <div class="data-actions">
+                <button class="btn btn-ghost" id="exportBtn" type="button">EXPORT JSON</button>
+                <button class="btn btn-ghost" id="importBtn" type="button">IMPORT JSON</button>
+                <input type="file" id="importFile" accept="application/json,.json" hidden />
+                <button class="btn btn-danger" id="clearBtn" type="button">WIPE ALL DATA</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-head"><h3 class="card-title">About</h3></div>
+              <p class="field-help"><span class="mono">AURA//VAULT</span> v1.0.0 — a monochrome command console for Taobao / Weidian / 1688 → KakoBuy routing, order tracking, and QC review.</p>
+              <p class="field-help">Deploy-ready for Netlify. Zero backend, zero dependencies, data stays on-device.</p>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ============ QC LIGHTBOX ============ -->
+  <div class="lightbox" id="lightbox" hidden role="dialog" aria-modal="true" aria-label="QC photo viewer">
+    <div class="lightbox-backdrop" data-lb-close></div>
+    <div class="lightbox-stage">
+      <div class="lightbox-topbar">
+        <div class="lb-meta">
+          <span class="mono-tag" id="lbOrderId">—</span>
+          <span class="lb-title" id="lbTitle">—</span>
+        </div>
+        <div class="lb-controls">
+          <button class="lb-btn" id="lbZoomOut" type="button" title="Zoom out" aria-label="Zoom out">−</button>
+          <button class="lb-btn" id="lbZoomIn" type="button" title="Zoom in" aria-label="Zoom in">+</button>
+          <button class="lb-btn" id="lbZoomReset" type="button" title="Reset zoom" aria-label="Reset zoom">1:1</button>
+          <button class="lb-btn lb-close" id="lbClose" type="button" title="Close (Esc)" aria-label="Close">✕</button>
+        </div>
+      </div>
+      <div class="lightbox-viewport" id="lbViewport">
+        <img id="lbImg" alt="QC photo" draggable="false" />
+      </div>
+      <div class="lightbox-bottom">
+        <button class="lb-btn" id="lbPrev" type="button" title="Previous (←)">← PREV</button>
+        <span class="lb-counter" id="lbCounter">0 / 0</span>
+        <button class="lb-btn" id="lbNext" type="button" title="Next (→)">NEXT →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ADD ORDER MODAL ============ -->
+  <div class="lightbox" id="addModal" hidden role="dialog" aria-modal="true" aria-label="Add new order">
+    <div class="lightbox-backdrop" data-modal-close></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 class="card-title">New Order</h3>
+        <button class="lb-btn lb-close" data-modal-close type="button" aria-label="Close">✕</button>
+      </div>
+      <label class="field-label" for="mTitle">PRODUCT TITLE</label>
+      <input type="text" id="mTitle" class="input" placeholder="e.g. Nike Tech Fleece Hoodie" spellcheck="false" />
+      <div class="modal-grid">
+        <div>
+          <label class="field-label" for="mPlatform">PLATFORM</label>
+          <select id="mPlatform" class="input">
+            <option value="taobao">Taobao</option>
+            <option value="weidian">Weidian</option>
+            <option value="1688">1688</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label" for="mItemId">ITEM ID</label>
+          <input type="text" id="mItemId" class="input" placeholder="Numeric ID" spellcheck="false" />
+        </div>
+      </div>
+      <label class="field-label" for="mStatus">STATUS</label>
+      <select id="mStatus" class="input">
+        <option value="pending">Pending</option>
+        <option value="purchased">Purchased</option>
+        <option value="warehouse">Arrived at Warehouse</option>
+        <option value="qc">QC Available</option>
+        <option value="shipped">Shipped</option>
+      </select>
+      <label class="field-label" for="mSource">SOURCE URL <span class="label-opt">(OPTIONAL)</span></label>
+      <input type="url" id="mSource" class="input" placeholder="https://…" spellcheck="false" />
+      <div class="modal-actions">
+        <button class="btn btn-ghost" data-modal-close type="button">CANCEL</button>
+        <button class="btn btn-primary" id="mSaveBtn" type="button">SAVE ORDER</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ TOAST ============ -->
+  <div class="toast" id="toast" hidden aria-live="polite"></div>
+
+  <script src="js/storage.js"></script>
+  <script src="js/parser.js"></script>
+  <script src="js/orders.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

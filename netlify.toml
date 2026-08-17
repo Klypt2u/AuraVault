@@ -1,0 +1,11 @@
+# AuraVault — Netlify configuration
+# Static SPA: no build step required, publish the repo root.
+
+[build]
+  publish = "."
+
+# Client-side (hash) routing fallback — prevents 404s on refresh.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
