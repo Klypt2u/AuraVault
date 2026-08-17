@@ -1,6 +1,6 @@
 /* ============================================================
    AURA//VAULT — orders module
-   Order model, status system, seed data, SVG placeholders.
+   Order model, status system, SVG placeholders. Starts empty.
    ============================================================ */
 
 (function () {
@@ -100,102 +100,15 @@
     return svgDataUri(svg);
   }
 
-  /* ---------- Seed data (first run only) ---------- */
+  /* ---------- Init (no demo data — the tracker starts empty) ---------- */
 
-  function seed() {
-    const now = Date.now();
-    const day = 86400000;
-    const mk = (o) =>
-      Object.assign(
-        {
-          id: "AV-" + String(Math.floor(1000 + Math.random() * 9000)),
-          platform: "taobao",
-          itemId: "",
-          title: "",
-          status: "pending",
-          sourceUrl: "",
-          kakobuyUrl: "",
-          qc: [],
-          createdAt: now,
-          updatedAt: now,
-        },
-        o
-      );
-
-    const orders = [
-      mk({
-        title: "Nike Tech Fleece Full-Zip Hoodie — Black",
-        platform: "taobao",
-        itemId: "682345678901",
-        status: "qc",
-        createdAt: now - 6 * day,
-        updatedAt: now - 1 * day,
-        sourceUrl: "https://item.taobao.com/item.htm?id=682345678901",
-        qc: [0, 1, 2, 3, 4].map((i) => ({ src: null, index: i })),
-      }),
-      mk({
-        title: "Arc'teryx Beta AR Jacket — Men's Large",
-        platform: "weidian",
-        itemId: "7428736519",
-        status: "warehouse",
-        createdAt: now - 4 * day,
-        updatedAt: now - 2 * day,
-        sourceUrl: "https://weidian.com/item.html?itemID=7428736519",
-        qc: [],
-      }),
-      mk({
-        title: "Louis Vuitton Keepall 55 — Damier Graphite",
-        platform: "weidian",
-        itemId: "7505929526",
-        status: "shipped",
-        createdAt: now - 12 * day,
-        updatedAt: now - 3 * day,
-        sourceUrl: "https://weidian.com/item.html?itemID=7505929526",
-        qc: [0, 1].map((i) => ({ src: null, index: i })),
-      }),
-      mk({
-        title: "Chrome Hearts Cross Pendant Necklace — 925 Silver",
-        platform: "1688",
-        itemId: "768901234567",
-        status: "qc",
-        createdAt: now - 8 * day,
-        updatedAt: now - 0.5 * day,
-        sourceUrl: "https://detail.1688.com/offer/768901234567.html",
-        qc: [0, 1, 2].map((i) => ({ src: null, index: i })),
-      }),
-      mk({
-        title: "Essentials Fear of God Hoodie — Heather Oatmeal",
-        platform: "taobao",
-        itemId: "654321098765",
-        status: "purchased",
-        createdAt: now - 2 * day,
-        updatedAt: now - 2 * day,
-        sourceUrl: "https://item.taobao.com/item.htm?id=654321098765",
-        qc: [],
-      }),
-      mk({
-        title: "Balenciaga Speed Runner Sneakers — Size 44",
-        platform: "weidian",
-        itemId: "7012345678",
-        status: "pending",
-        createdAt: now - 0.5 * day,
-        updatedAt: now - 0.5 * day,
-        sourceUrl: "https://weidian.com/item.html?itemID=7012345678",
-        qc: [],
-      }),
-    ];
-
-    // resolve qc placeholders lazily at render time via qcSrc()
-    return orders;
+  function ensureInit() {
+    if (AV.Storage.getOrders() === null) {
+      AV.Storage.setOrders([]);
+    }
   }
 
   /* ---------- Public API ---------- */
-
-  function ensureSeeded() {
-    if (AV.Storage.getOrders() === null) {
-      AV.Storage.setOrders(seed());
-    }
-  }
 
   function qcSrc(order, photo) {
     if (photo && photo.src) return photo.src;
@@ -216,7 +129,7 @@
     PLATFORM_CODES,
     statusById,
     statusLabel,
-    ensureSeeded,
+    ensureInit,
     qcSrc,
     thumbSrc,
     nextId,

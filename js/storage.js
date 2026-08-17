@@ -16,8 +16,29 @@
     affcode: "",        // KakoBuy affiliate code appended to outlinks
     autoCopy: true,     // auto-copy outlink after conversion
     grid: false,        // show background blueprint grid
-    sessionToken: "",   // KakoBuy session token (stored locally only)
+    sessionToken: "",   // KakoBuy session cookie (stored locally only)
+    dataVersion: 0,     // one-time migration marker
+    lastSync: 0,        // last KakoBuy sync timestamp
   };
+
+  // Markers for the demo orders shipped in v1.0.0 — used by migrate() to
+  // strip them from browsers that already persisted them.
+  const DEMO_ITEM_IDS = [
+    "682345678901",
+    "7428736519",
+    "7505929526",
+    "768901234567",
+    "654321098765",
+    "7012345678",
+  ];
+  const DEMO_TITLES = [
+    "Nike Tech Fleece Full-Zip Hoodie — Black",
+    "Arc'teryx Beta AR Jacket — Men's Large",
+    "Louis Vuitton Keepall 55 — Damier Graphite",
+    "Chrome Hearts Cross Pendant Necklace — 925 Silver",
+    "Essentials Fear of God Hoodie — Heather Oatmeal",
+    "Balenciaga Speed Runner Sneakers — Size 44",
+  ];
 
   function safeGet(key) {
     try {
@@ -99,6 +120,23 @@
     clearAll() {
       localStorage.removeItem(KEYS.prefs);
       localStorage.removeItem(KEYS.orders);
+    },
+
+    /**
+     * One-time data migrations. v2: remove the demo orders that v1.0.0
+     * seeded on first load, so the tracker reflects only real data.
+     */
+    migrate() {
+      const prefs = this.getPrefs();
+      if ((prefs.dataVersion || 0) >= 2) return;
+      const list = this.getOrders();
+      if (Array.isArray(list)) {
+        const filtered = list.filter(
+          (o) => !DEMO_ITEM_IDS.includes(o.itemId) && !DEMO_TITLES.includes(o.title)
+        );
+        if (filtered.length !== list.length) this.setOrders(filtered);
+      }
+      this.setPrefs({ dataVersion: 2 });
     },
   };
 

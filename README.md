@@ -29,7 +29,7 @@ Built with **vanilla HTML + CSS + JavaScript**. No build step, no dependencies, 
 - Orders, preferences, KakoBuy affiliate code, and session token all persist in
   `localStorage` under the `auravault.*` keys — data survives refreshes and stays on-device.
 - Export / import JSON backups and wipe data from **Settings**.
-- Ships with demo seed orders so every screen is alive on first load.
+- Starts empty — no fake demo orders. Add your own or sync them from KakoBuy.
 
 ### 🌐 Netlify-ready
 - `_redirects` + `netlify.toml` (`/* → /index.html 200`) so client-side routing never 404s on refresh.
@@ -48,6 +48,15 @@ npx serve .
 ```
 
 Then open <http://localhost:8080>.
+
+To use the KakoBuy integration without deploying, also start the local proxy
+in a second terminal:
+
+```bash
+node proxy/server.js   # → http://127.0.0.1:8787/kakobuy
+```
+
+and set **Settings → KakoBuy Integration → Proxy Endpoint** to that URL.
 
 ---
 
@@ -84,45 +93,57 @@ KakoBuy sync) and the lightbox will render them at full resolution.
 
 ## KakoBuy integration (live orders + QC)
 
-### The honest constraints
+### How it works
 
-KakoBuy has **no official public API and no OAuth**. Its web app talks to an
-internal, undocumented JSON API authenticated by the browser session cookie,
-and the site is **geo-blocked (HTTP 451)** in some regions. A static site cannot
-read kakobuy.com's cookies (cross-origin / HttpOnly), and direct browser calls
-to their internal API are blocked by CORS.
+KakoBuy has **no official public API**, but its web frontend was reverse-engineered
+from the shipped bundle (`app.ce491532.js`). The real protocol AuraVault implements:
 
-The only mechanism that works for third-party tools is what AuraVault implements:
+- **Host:** `https://v1.kakoapi.com`
+- **Endpoints:** `/api/user/info`, `/api/order/index`, `/api/order/item`, …
+- **Method:** `POST` with an **encrypted body**: `JSON → zlib.deflateRaw →
+  AES-256-CBC → base64`, with the AES key/IV RSA-wrapped (1024-bit public key)
+  and sent as `{ data, key, iv, req_code: 4 }`.
+- **Auth:** your `token` cookie value, sent inside the encrypted payload.
+- **Response:** `{ code, msg, data }` — `200` = ok, `202` = ok-but-encrypted.
 
-1. You log into **kakobuy.com** in your browser and copy your session `Cookie`.
-2. AuraVault stores it locally and sends it to its **own server-side proxy**
-   (`netlify/functions/kakobuy.js`), which forwards requests to KakoBuy with
-   your cookie. Server-side requests have no CORS, so this works.
-3. Orders are pulled, mapped to AuraVault statuses, and merged into the tracker;
-   QC photo URLs are attached to orders and shown in the lightbox.
+This crypto is implemented in `netlify/functions/lib/crypto.js` and has been
+**verified against the live API** (an invalid token now returns `please login
+first` instead of the `Illegal request` you get from a badly-encrypted body).
+
+Because a static site can't read kakobuy.com cookies (cross-origin / HttpOnly)
+and direct browser calls would be CORS-blocked, requests go through a small
+**server-side proxy** (a Netlify Function or the standalone `proxy/server.js`).
+
+1. You log into **kakobuy.com** and copy your `token` cookie value.
+2. AuraVault stores it locally and sends it to its own proxy.
+3. The proxy encrypts + forwards to KakoBuy, decrypts the reply, and returns
+   normalized JSON.
+4. Orders are mapped to AuraVault statuses and merged into the tracker; QC
+   photo URLs are attached and shown in the lightbox.
 
 ### Connect a session
 
-1. Deploy with Netlify Functions enabled (the `netlify/functions/` folder is
-   auto-detected; locally run `netlify dev`).
-2. Open **Settings → KakoBuy Integration** and paste your cookie:
-   - Log into kakobuy.com → DevTools (F12) → **Network** → click any request →
-     **Request Headers** → copy the full `Cookie:` value.
+1. Run a proxy (pick one):
+   - **Netlify**: deploy with Functions enabled — `netlify/functions/` is
+     auto-detected and served at `/.netlify/functions/kakobuy` (default).
+   - **Locally**: `node proxy/server.js`, then set **Settings → KakoBuy
+     Integration → Proxy Endpoint** to `http://127.0.0.1:8787/kakobuy`.
+2. Open **Settings → KakoBuy Integration** and paste your token:
+   - Log into kakobuy.com → DevTools (F12) → **Application** → Cookies →
+     kakobuy.com → copy the value of the cookie named `token`.
 3. Click **CONNECT** (tests the session), then **SYNC NOW** to pull orders and QC.
 
 Use **TEST** to verify a session, **DISCONNECT** to clear it, and the ⟳ SYNC
 button on the Dashboard / Order Tracker to refresh. A linked session
 auto-syncs on load. The cookie is stored only in this browser's localStorage.
 
-### Confirming the undocumented endpoints
+### What still needs a live session
 
-The internal endpoint paths live in one place — `ENDPOINTS` at the top of
-`netlify/functions/kakobuy.js` — and can be overridden with env vars
-(`KAKOBUY_BASE`, `KAKOBUY_EP_TEST`, `KAKOBUY_EP_ORDERS`, `KAKOBUY_EP_QC`).
-They could not be verified from this build environment (geo-blocked). To
-confirm, open kakobuy.com → DevTools → Network, click your order list / QC
-requests, and note the paths + response shape, then update the endpoints and
-`normalizeOrder` in `js/kakobuy.js` accordingly.
+The endpoints and encryption are confirmed; the only thing that needs one real
+login is the **response field mapping** (what each order object is named). When
+you sync successfully, look at the order JSON and adjust `normalizeOrder` in
+`js/kakobuy.js` (and the `ENDPOINTS` env vars if paths ever change). The proxy
+also returns the raw KakoBuy payload under `raw` to make this easy.
 
 ---
 
@@ -138,6 +159,7 @@ requests, and note the paths + response shape, then update the endpoints and
 │   ├── kakobuy.js      # KakoBuy client: connect/test/sync, merge, QC attach
 │   └── app.js          # Router, converter flow, QC lightbox, settings
 ├── netlify/functions/kakobuy.js  # Server-side KakoBuy proxy (session cookie)
+├── proxy/server.js     # Standalone local proxy (no Netlify needed)
 ├── _redirects          # Netlify SPA fallback
 └── netlify.toml        # Netlify config
 ```

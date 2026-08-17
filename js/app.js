@@ -684,12 +684,12 @@
   $("#clearBtn").addEventListener("click", () => {
     if (!confirm("Wipe ALL AuraVault data (orders + preferences) from this browser?")) return;
     AV.Storage.clearAll();
-    AV.Orders.ensureSeeded();
+    AV.Orders.ensureInit();
     loadSettings();
     renderOrders();
     renderQC();
     renderDashboard();
-    toast("ALL DATA WIPED — SEED DATA RESTORED");
+    toast("ALL DATA WIPED");
   });
 
   /* ================= KAKOBUY INTEGRATION ================= */
@@ -827,7 +827,8 @@
 
   /* ================= INIT ================= */
 
-  AV.Orders.ensureSeeded();
+  AV.Storage.migrate();
+  AV.Orders.ensureInit();
   loadSettings();
   $("#sysVersion").textContent = "v1.0.0";
   renderKbStatus();

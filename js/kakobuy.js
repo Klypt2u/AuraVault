@@ -93,15 +93,27 @@
           if (v !== undefined && v !== null && v !== "") url.searchParams.set(k, v);
         });
       }
-      const res = await fetch(url.toString(), {
-        method: "GET",
-        headers: { "X-Kakobuy-Token": token, Accept: "application/json" },
-      });
+      let res;
+      try {
+        res = await fetch(url.toString(), {
+          method: "GET",
+          headers: { "X-Kakobuy-Token": token, Accept: "application/json" },
+        });
+      } catch (e) {
+        throw new Error(
+          "Could not reach the KakoBuy proxy. Run `node proxy/server.js` locally or deploy to Netlify (Functions), then set the Proxy Endpoint in Settings."
+        );
+      }
       let json = null;
       try {
         json = await res.json();
       } catch (e) {
         /* not JSON */
+      }
+      if (res.status === 404 || res.status === 405) {
+        throw new Error(
+          "KakoBuy proxy not found (HTTP " + res.status + "). Run `node proxy/server.js` locally and set the Proxy Endpoint in Settings, or deploy to Netlify with Functions enabled."
+        );
       }
       if (!res.ok || !json || json.ok !== true) {
         const msg = (json && json.error) || ("Proxy responded HTTP " + res.status);

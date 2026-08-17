@@ -212,11 +212,12 @@
                   <span class="toggle-sub" id="kbConnSub">Not connected — orders &amp; QC stay local until you link a KakoBuy session.</span>
                 </div>
               </div>
-              <label class="field-label" for="setToken">KAKOBUY SESSION COOKIE</label>
-              <input type="password" id="setToken" class="input" placeholder="Paste the Cookie header value from kakobuy.com…" autocomplete="off" spellcheck="false" />
-              <p class="field-help">How to get it: log into <a class="link-mono" href="https://www.kakobuy.com" target="_blank" rel="noopener noreferrer">kakobuy.com ↗</a>, open DevTools (F12) → Network → click any kakobuy.com request → Request Headers → copy the full <span class="mono">Cookie:</span> value. Kept only in this browser.</p>
+              <label class="field-label" for="setToken">KAKOBUY TOKEN</label>
+              <input type="password" id="setToken" class="input" placeholder="Paste your `token` cookie value…" autocomplete="off" spellcheck="false" />
+              <p class="field-help">Log into <a class="link-mono" href="https://www.kakobuy.com" target="_blank" rel="noopener noreferrer">kakobuy.com ↗</a> → DevTools (F12) → <b>Application</b> → Cookies → kakobuy.com → copy the value of the cookie named <span class="mono">token</span>. Kept only in this browser.</p>
               <label class="field-label" for="setProxy">PROXY ENDPOINT <span class="label-opt">(ADVANCED)</span></label>
               <input type="text" id="setProxy" class="input" placeholder="/.netlify/functions/kakobuy" autocomplete="off" spellcheck="false" />
+              <p class="field-help">Deployed on Netlify this stays <span class="mono">/.netlify/functions/kakobuy</span>. To run without deploying, start <span class="mono">node proxy/server.js</span> and set this to <span class="mono">http://127.0.0.1:8787/kakobuy</span>.</p>
               <div class="kb-actions">
                 <button class="btn btn-primary" id="kbConnectBtn" type="button">CONNECT</button>
                 <button class="btn btn-ghost" id="kbTestBtn" type="button">TEST</button>
