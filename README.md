@@ -77,5 +77,67 @@ Then open <http://localhost:8080>.
 ## Adding real QC photos
 
 QC photos are stored per-order in the `qc` array as `{ src, index }`. Replace the
-placeholder `src: null` entries with real KakoBuy QC image URLs (e.g. from the
-KakoBuy warehouse API) and the lightbox will render them at full resolution.
+placeholder `src: null` entries with real KakoBuy QC image URLs (e.g. from a
+KakoBuy sync) and the lightbox will render them at full resolution.
+
+---
+
+## KakoBuy integration (live orders + QC)
+
+### The honest constraints
+
+KakoBuy has **no official public API and no OAuth**. Its web app talks to an
+internal, undocumented JSON API authenticated by the browser session cookie,
+and the site is **geo-blocked (HTTP 451)** in some regions. A static site cannot
+read kakobuy.com's cookies (cross-origin / HttpOnly), and direct browser calls
+to their internal API are blocked by CORS.
+
+The only mechanism that works for third-party tools is what AuraVault implements:
+
+1. You log into **kakobuy.com** in your browser and copy your session `Cookie`.
+2. AuraVault stores it locally and sends it to its **own server-side proxy**
+   (`netlify/functions/kakobuy.js`), which forwards requests to KakoBuy with
+   your cookie. Server-side requests have no CORS, so this works.
+3. Orders are pulled, mapped to AuraVault statuses, and merged into the tracker;
+   QC photo URLs are attached to orders and shown in the lightbox.
+
+### Connect a session
+
+1. Deploy with Netlify Functions enabled (the `netlify/functions/` folder is
+   auto-detected; locally run `netlify dev`).
+2. Open **Settings → KakoBuy Integration** and paste your cookie:
+   - Log into kakobuy.com → DevTools (F12) → **Network** → click any request →
+     **Request Headers** → copy the full `Cookie:` value.
+3. Click **CONNECT** (tests the session), then **SYNC NOW** to pull orders and QC.
+
+Use **TEST** to verify a session, **DISCONNECT** to clear it, and the ⟳ SYNC
+button on the Dashboard / Order Tracker to refresh. A linked session
+auto-syncs on load. The cookie is stored only in this browser's localStorage.
+
+### Confirming the undocumented endpoints
+
+The internal endpoint paths live in one place — `ENDPOINTS` at the top of
+`netlify/functions/kakobuy.js` — and can be overridden with env vars
+(`KAKOBUY_BASE`, `KAKOBUY_EP_TEST`, `KAKOBUY_EP_ORDERS`, `KAKOBUY_EP_QC`).
+They could not be verified from this build environment (geo-blocked). To
+confirm, open kakobuy.com → DevTools → Network, click your order list / QC
+requests, and note the paths + response shape, then update the endpoints and
+`normalizeOrder` in `js/kakobuy.js` accordingly.
+
+---
+
+## Project structure
+
+```
+├── index.html          # SPA shell: header, sidebar, 5 views, modals
+├── css/styles.css      # Monochrome theme, glass cards, responsive layout
+├── js/
+│   ├── storage.js      # localStorage layer (prefs + orders)
+│   ├── parser.js       # Taobao/Weidian/1688 parsing + KakoBuy outlink builder
+│   ├── orders.js       # Order model, statuses, seed data, SVG placeholders
+│   ├── kakobuy.js      # KakoBuy client: connect/test/sync, merge, QC attach
+│   └── app.js          # Router, converter flow, QC lightbox, settings
+├── netlify/functions/kakobuy.js  # Server-side KakoBuy proxy (session cookie)
+├── _redirects          # Netlify SPA fallback
+└── netlify.toml        # Netlify config
+```

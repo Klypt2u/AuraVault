@@ -150,6 +150,18 @@ code { font-family: var(--mono); }
   flex-shrink: 0;
 }
 
+.kb-pill {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
+}
+.kb-pill.linked { color: #000; background: #fff; border-color: #fff; }
+
 .pulse-dot {
   width: 7px;
   height: 7px;
@@ -779,6 +791,38 @@ select.input { appearance: none; -webkit-appearance: none; cursor: pointer; }
 .switch input:checked + .slider::before { transform: translateX(20px); background: #000; }
 
 .data-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px; }
+
+/* KakoBuy integration */
+.kb-card { border-color: var(--border-strong); }
+.kb-badge.linked { color: #000; background: #fff; border-color: #fff; }
+.kb-conn-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px dashed var(--border);
+  margin-bottom: 14px;
+}
+.kb-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--text-faint);
+  flex-shrink: 0;
+  box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+}
+.kb-dot.linked {
+  background: #fff;
+  animation: pulse 2s infinite;
+}
+.kb-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+.kb-status {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--text-faint);
+}
 
 /* ============ LIGHTBOX / MODALS ============ */
 .lightbox {

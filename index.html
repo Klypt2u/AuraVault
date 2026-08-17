@@ -24,6 +24,7 @@
       </a>
       <nav class="topnav" id="topNav" aria-label="Primary"></nav>
       <div class="topbar-status" id="topbarStatus">
+        <span class="kb-pill" id="topbarKb" title="KakoBuy connection">KAKOBUY: OFFLINE</span>
         <span class="pulse-dot"></span>
         <span class="status-text">CONSOLE READY</span>
       </div>
@@ -37,6 +38,7 @@
           <div class="foot-line"><span class="foot-key">SYS</span><span id="sysVersion">v1.0.0</span></div>
           <div class="foot-line"><span class="foot-key">DB</span><span id="sysOrders">0 ORDERS</span></div>
           <div class="foot-line"><span class="foot-key">LNK</span><span id="sysPlatform">—</span></div>
+          <div class="foot-line"><span class="foot-key">KB</span><span id="sysKb">OFFLINE</span></div>
         </div>
       </aside>
 
@@ -60,6 +62,7 @@
             <div class="hero-actions">
               <a class="btn btn-primary" href="#/converter">OPEN LINK CONVERTER</a>
               <a class="btn btn-ghost" href="#/orders">VIEW ORDERS</a>
+              <button class="btn btn-ghost" id="dashSyncBtn" type="button" hidden>⟳ SYNC KAKOBUY</button>
             </div>
           </div>
 
@@ -154,6 +157,7 @@
           <div class="toolbar card">
             <input type="search" id="orderSearch" class="input" placeholder="Search title or item ID…" spellcheck="false" />
             <div class="filter-chips" id="orderFilters"></div>
+            <button class="btn btn-ghost" id="ordersSyncBtn" type="button" hidden>⟳ SYNC</button>
           </div>
 
           <div class="orders-grid" id="ordersGrid"></div>
@@ -196,15 +200,38 @@
           </div>
 
           <div class="settings-grid">
+            <div class="card kb-card">
+              <div class="card-head">
+                <h3 class="card-title">KakoBuy Integration</h3>
+                <span class="mono-tag kb-badge" id="kbConnBadge">OFFLINE</span>
+              </div>
+              <div class="kb-conn-row">
+                <span class="kb-dot" id="kbConnDot"></span>
+                <div>
+                  <span class="toggle-label">Session link</span>
+                  <span class="toggle-sub" id="kbConnSub">Not connected — orders &amp; QC stay local until you link a KakoBuy session.</span>
+                </div>
+              </div>
+              <label class="field-label" for="setToken">KAKOBUY SESSION COOKIE</label>
+              <input type="password" id="setToken" class="input" placeholder="Paste the Cookie header value from kakobuy.com…" autocomplete="off" spellcheck="false" />
+              <p class="field-help">How to get it: log into <a class="link-mono" href="https://www.kakobuy.com" target="_blank" rel="noopener noreferrer">kakobuy.com ↗</a>, open DevTools (F12) → Network → click any kakobuy.com request → Request Headers → copy the full <span class="mono">Cookie:</span> value. Kept only in this browser.</p>
+              <label class="field-label" for="setProxy">PROXY ENDPOINT <span class="label-opt">(ADVANCED)</span></label>
+              <input type="text" id="setProxy" class="input" placeholder="/.netlify/functions/kakobuy" autocomplete="off" spellcheck="false" />
+              <div class="kb-actions">
+                <button class="btn btn-primary" id="kbConnectBtn" type="button">CONNECT</button>
+                <button class="btn btn-ghost" id="kbTestBtn" type="button">TEST</button>
+                <button class="btn btn-ghost" id="kbSyncBtn" type="button">SYNC NOW</button>
+                <button class="btn btn-danger" id="kbDisconnectBtn" type="button">DISCONNECT</button>
+              </div>
+              <div class="kb-status" id="kbStatus">Last sync: never</div>
+            </div>
+
             <div class="card">
               <div class="card-head"><h3 class="card-title">KakoBuy Routing</h3></div>
               <label class="field-label" for="setAffcode">AFFILIATE CODE <span class="label-opt">(OPTIONAL)</span></label>
               <input type="text" id="setAffcode" class="input" placeholder="e.g. 897xg" autocomplete="off" spellcheck="false" />
               <p class="field-help">Appended to every generated KakoBuy outlink as <span class="mono">affcode=</span>.</p>
 
-              <label class="field-label" for="setToken">KAKOBUY SESSION TOKEN <span class="label-opt">(LOCAL ONLY)</span></label>
-              <input type="password" id="setToken" class="input" placeholder="Stored in localStorage, never transmitted" autocomplete="off" />
-              <p class="field-help">Kept in this browser only. AuraVault has no backend — nothing is sent anywhere.</p>
             </div>
 
             <div class="card">
@@ -322,6 +349,7 @@
   <script src="js/storage.js"></script>
   <script src="js/parser.js"></script>
   <script src="js/orders.js"></script>
+  <script src="js/kakobuy.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

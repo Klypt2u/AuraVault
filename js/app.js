@@ -620,6 +620,7 @@
   const prefsEls = {
     affcode: $("#setAffcode"),
     sessionToken: $("#setToken"),
+    proxyUrl: $("#setProxy"),
     autoCopy: $("#setAutoCopy"),
     grid: $("#setGrid"),
   };
@@ -628,6 +629,7 @@
     const p = AV.Storage.getPrefs();
     prefsEls.affcode.value = p.affcode || "";
     prefsEls.sessionToken.value = p.sessionToken || "";
+    prefsEls.proxyUrl.value = p.proxyUrl || "";
     prefsEls.autoCopy.checked = !!p.autoCopy;
     prefsEls.grid.checked = !!p.grid;
     document.body.classList.toggle("grid-bg", !!p.grid);
@@ -635,9 +637,6 @@
 
   prefsEls.affcode.addEventListener("input", () => {
     AV.Storage.setPrefs({ affcode: prefsEls.affcode.value.trim() });
-  });
-  prefsEls.sessionToken.addEventListener("input", () => {
-    AV.Storage.setPrefs({ sessionToken: prefsEls.sessionToken.value });
   });
   prefsEls.autoCopy.addEventListener("change", () => {
     AV.Storage.setPrefs({ autoCopy: prefsEls.autoCopy.checked });
@@ -693,10 +692,149 @@
     toast("ALL DATA WIPED — SEED DATA RESTORED");
   });
 
+  /* ================= KAKOBUY INTEGRATION ================= */
+
+  function fmtSyncTime(ts) {
+    if (!ts) return "never";
+    return new Date(ts).toLocaleString();
+  }
+
+  function renderKbStatus() {
+    const connected = AV.KakoBuy.isConnected();
+    const verified = !!(AV.Storage.getPrefs().kbVerified && connected);
+    const linked = connected && verified;
+
+    $("#topbarKb").textContent = "KAKOBUY: " + (linked ? "LINKED" : connected ? "VERIFY" : "OFFLINE");
+    $("#topbarKb").classList.toggle("linked", linked);
+    $("#sysKb").textContent = linked ? "LINKED" : "OFFLINE";
+    $("#kbConnBadge").textContent = linked ? "LINKED" : connected ? "VERIFY" : "OFFLINE";
+    $("#kbConnBadge").classList.toggle("linked", linked);
+    $("#kbConnDot").classList.toggle("linked", linked);
+    $("#kbConnSub").textContent = linked
+      ? "Linked to KakoBuy. Orders and QC photos sync from your session."
+      : connected
+        ? "Session saved — run TEST or SYNC NOW to verify it."
+        : "Not connected — orders & QC stay local until you link a KakoBuy session.";
+    $("#kbStatus").textContent =
+      "Last sync: " + fmtSyncTime(AV.Storage.getPrefs().lastSync) +
+      (linked && !AV.Storage.getPrefs().lastSync ? " (connect and sync to pull your orders)" : "");
+
+    ["#ordersSyncBtn", "#dashSyncBtn"].forEach((sel) => {
+      $(sel).hidden = !connected;
+    });
+    $("#kbDisconnectBtn").disabled = !connected;
+    $("#kbTestBtn").disabled = !connected;
+    $("#kbSyncBtn").disabled = !connected;
+  }
+
+  function setBusy(btn, busy, label) {
+    if (!btn) return;
+    btn.disabled = busy;
+    if (label !== undefined) btn.textContent = label;
+  }
+
+  async function runKbSync(opts) {
+    if (!AV.KakoBuy.isConnected()) {
+      toast("CONNECT TO KAKOBUY FIRST", true);
+      return;
+    }
+    const label = opts && opts.label;
+    setBusy($("#kbSyncBtn"), true, label || "SYNCING…");
+    setBusy($("#ordersSyncBtn"), true, label || "⟳ SYNC…");
+    setBusy($("#dashSyncBtn"), true, label || "⟳ SYNC…");
+    try {
+      const res = await AV.KakoBuy.syncOrders();
+      // Best-effort QC pull for any synced order that has a KakoBuy id.
+      const local = AV.Storage.getOrders() || [];
+      const kbOrders = local.filter((o) => o.kakobuyOrderId);
+      let qcAttached = 0;
+      for (const o of kbOrders) {
+        qcAttached += await AV.KakoBuy.syncQC(o);
+      }
+      AV.Storage.setPrefs({ kbVerified: true });
+      renderOrders();
+      renderQC();
+      renderDashboard();
+      renderKbStatus();
+      toast(
+        "SYNC OK · +" + res.added + " NEW, " + res.updated + " UPDATED" +
+        (qcAttached ? " · " + qcAttached + " QC PHOTOS" : "")
+      );
+    } catch (err) {
+      AV.Storage.setPrefs({ kbVerified: false });
+      renderKbStatus();
+      toast("SYNC FAILED: " + err.message, true);
+    } finally {
+      setBusy($("#kbSyncBtn"), false);
+      setBusy($("#ordersSyncBtn"), false);
+      setBusy($("#dashSyncBtn"), false);
+    }
+  }
+
+  async function runKbTest() {
+    if (!AV.KakoBuy.isConnected()) {
+      toast("PASTE A SESSION COOKIE FIRST", true);
+      return;
+    }
+    setBusy($("#kbTestBtn"), true, "TESTING…");
+    try {
+      const res = await AV.KakoBuy.test();
+      AV.Storage.setPrefs({ kbVerified: true });
+      renderKbStatus();
+      toast("KAKOBUY LINKED" + (res.account && res.account.name ? " — " + res.account.name : ""));
+    } catch (err) {
+      AV.Storage.setPrefs({ kbVerified: false });
+      renderKbStatus();
+      toast("CONNECTION FAILED: " + err.message, true);
+    } finally {
+      setBusy($("#kbTestBtn"), false);
+    }
+  }
+
+  prefsEls.sessionToken.addEventListener("input", () => {
+    AV.Storage.setPrefs({ sessionToken: prefsEls.sessionToken.value, kbVerified: false });
+    renderKbStatus();
+  });
+  prefsEls.proxyUrl.addEventListener("input", () => {
+    AV.Storage.setPrefs({ proxyUrl: prefsEls.proxyUrl.value.trim() });
+  });
+
+  $("#kbConnectBtn").addEventListener("click", () => {
+    const token = prefsEls.sessionToken.value.trim();
+    AV.Storage.setPrefs({
+      sessionToken: token,
+      proxyUrl: prefsEls.proxyUrl.value.trim(),
+      kbVerified: false,
+    });
+    if (!token) {
+      toast("PASTE A SESSION COOKIE FIRST", true);
+      renderKbStatus();
+      return;
+    }
+    runKbTest();
+  });
+  $("#kbTestBtn").addEventListener("click", runKbTest);
+  $("#kbSyncBtn").addEventListener("click", () => runKbSync({ label: "SYNCING…" }));
+  $("#ordersSyncBtn").addEventListener("click", () => runKbSync({ label: "⟳ SYNC…" }));
+  $("#dashSyncBtn").addEventListener("click", () => runKbSync({ label: "⟳ SYNC…" }));
+  $("#kbDisconnectBtn").addEventListener("click", () => {
+    if (!confirm("Disconnect the KakoBuy session and clear the stored cookie?")) return;
+    AV.KakoBuy.disconnect();
+    prefsEls.sessionToken.value = "";
+    renderKbStatus();
+    toast("KAKOBUY DISCONNECTED");
+  });
+
   /* ================= INIT ================= */
 
   AV.Orders.ensureSeeded();
   loadSettings();
   $("#sysVersion").textContent = "v1.0.0";
+  renderKbStatus();
   route();
+
+  // Silent auto-sync on load when a session is already linked.
+  if (AV.KakoBuy.isConnected() && AV.Storage.getPrefs().kbVerified) {
+    runKbSync();
+  }
 })();
